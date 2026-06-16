@@ -223,20 +223,25 @@ function initHero() {
   // Screen — showreel video after TV powers on
   const showreelVideo = document.createElement('video');
   showreelVideo.src = '/showreel.mp4';
-  showreelVideo.crossOrigin = 'anonymous';
   showreelVideo.loop = true;
   showreelVideo.muted = true;
   showreelVideo.playsInline = true;
   showreelVideo.preload = 'auto';
 
+  // Pre-buffer the video immediately so frames are ready by blink time
+  showreelVideo.play().catch(() => {});
+
+  
   const videoTex = new THREE.VideoTexture(showreelVideo);
   videoTex.minFilter = THREE.LinearFilter;
   videoTex.magFilter = THREE.LinearFilter;
+  videoTex.generateMipmaps = false;
 
-  const screenMat = new THREE.MeshBasicMaterial({ color: 0x050505, map: videoTex });
+  // Screen material — map assigned from start, color black to hide video until blink-on.
+  const screenMat = new THREE.MeshBasicMaterial({ map: videoTex, color: 0x000000 });
   const screenW = 2.85, screenH = 1.55;
   const screenMesh = new THREE.Mesh(new THREE.PlaneGeometry(screenW, screenH), screenMat);
-  screenMesh.position.set(0, 0.25, bodyD / 2 + 0.105);
+  screenMesh.position.set(0, 0.25, bodyD / 2 + 0.5);
   tvGroup.add(screenMesh);
 
 
@@ -454,7 +459,11 @@ function initHero() {
   .addLabel('camPush')
   .to(camera.position, { z: 7.5, x: 0.15, y: 1.0, duration: 3.0, ease: 'power3.inOut' }, 'camPush')
   // CRT blink on like an old light — warm flicker then steady
-  .call(() => { showreelVideo.play().catch(() => {}); screenMat.color.set(0xffffff); }, null, 'camPush+=0.5')
+  .call(() => {
+    showreelVideo.play().catch(() => {});
+    // Ensure color starts black (should already be)
+    screenMat.color.set(0x000000);
+  }, null, 'camPush+=0.5')
   .to(screenMat.color, { r: 0.2, g: 0.2, b: 0.2, duration: 0.04 })
   .to(screenMat.color, { r: 0.9, g: 0.9, b: 0.9, duration: 0.04 })
   .to(screenMat.color, { r: 0.3, g: 0.3, b: 0.3, duration: 0.03 })
@@ -483,6 +492,11 @@ function initHero() {
       if (dustPos[i * 3 + 1] > 4) dustPos[i * 3 + 1] = -4;
     }
     dustPoints.geometry.attributes.position.needsUpdate = true;
+
+    // Ensure the video texture pushes new frames to the GPU
+    if (videoTex) videoTex.needsUpdate = true;
+
+
 
     composer.render();
 
