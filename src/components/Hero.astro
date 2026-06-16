@@ -10,9 +10,6 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { gsap } from 'gsap';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 
 function initHero() {
   const canvas = document.getElementById('crt-canvas') as HTMLCanvasElement;
@@ -23,8 +20,9 @@ function initHero() {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setClearColor(0x080808);
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0.85;
+  renderer.toneMapping = THREE.NoToneMapping;
+  renderer.toneMappingExposure = 1.0;
+  renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -36,11 +34,11 @@ function initHero() {
   camera.lookAt(0, 0.3, 0);
 
   // === LIGHTING — dark, cinematic, cool ===
-  const hemi = new THREE.HemisphereLight(0xeeefff, 0x111122, 0.15);
+  const hemi = new THREE.HemisphereLight(0xeeefff, 0x111122, 1.0);
   scene.add(hemi);
 
   // Key — soft shadows, slight cool
-  const keyLight = new THREE.DirectionalLight(0xeeffff, 1.4);
+  const keyLight = new THREE.DirectionalLight(0xeeffff, 3.5);
   keyLight.position.set(4, 6, 5);
   keyLight.castShadow = true;
   keyLight.shadow.mapSize.width = 2048;
@@ -56,7 +54,7 @@ function initHero() {
   scene.add(keyLight);
 
   // Fill
-  const fillLight = new THREE.DirectionalLight(0xbbddff, 0.15);
+  const fillLight = new THREE.DirectionalLight(0xbbddff, 0.8);
   fillLight.position.set(-3, 2, 4);
   scene.add(fillLight);
 
@@ -64,6 +62,16 @@ function initHero() {
   const rimLight = new THREE.DirectionalLight(0x8899cc, 0.15);
   rimLight.position.set(-2, 1, -6);
   scene.add(rimLight);
+
+  // Warm backlight for cinematic rim
+  const backLight = new THREE.DirectionalLight(0x2D8AE9, 1.0);
+  backLight.position.set(0, 3, -8);
+  scene.add(backLight);
+
+  // Front light to pick out front face details
+  const frontLight = new THREE.DirectionalLight(0xeeeeff, 1.0);
+  frontLight.position.set(0, 2, 10);
+  scene.add(frontLight);
 
   // --- Grunge texture generator ---
   function makeGrungeTex(w: number, h: number, baseR: number, baseG: number, baseB: number, seed: number): THREE.CanvasTexture {
@@ -222,7 +230,7 @@ function initHero() {
 
   // Screen — showreel video after TV powers on
   const showreelVideo = document.createElement('video');
-  showreelVideo.src = '/showreel.mp4';
+  showreelVideo.src = '/showreelhd.mp4';
   showreelVideo.loop = true;
   showreelVideo.muted = true;
   showreelVideo.playsInline = true;
@@ -237,9 +245,9 @@ function initHero() {
   videoTex.magFilter = THREE.LinearFilter;
   videoTex.generateMipmaps = false;
 
-  // Screen material — map assigned from start, color black to hide video until blink-on.
-  const screenMat = new THREE.MeshBasicMaterial({ map: videoTex, color: 0x000000 });
-  const screenW = 2.85, screenH = 1.55;
+  // Screen material — map assigned from start, rendering the texture exactly as-is.
+  const screenMat = new THREE.MeshBasicMaterial({ map: videoTex });
+  const screenW = 2.85, screenH = 1.603;
   const screenMesh = new THREE.Mesh(new THREE.PlaneGeometry(screenW, screenH), screenMat);
   screenMesh.position.set(0, 0.25, bodyD / 2 + 0.5);
   tvGroup.add(screenMesh);
@@ -378,18 +386,6 @@ function initHero() {
   tvGroup.position.y = 10;
   const restY = 0.6;
 
-  // --- POST-PROCESSING: BLOOM — subtle, moody glow ---
-  const composer = new EffectComposer(renderer);
-  const renderPass = new RenderPass(scene, camera);
-  composer.addPass(renderPass);
-
-  const bloomPass = new UnrealBloomPass(
-    new THREE.Vector2(window.innerWidth, window.innerHeight),
-    0.08,   // strength
-    0.5,    // radius
-    0.4     // threshold
-  );
-  composer.addPass(bloomPass);
 
   // --- Screen shake ---
   const shakeTarget = { x: 0, y: 0 };
@@ -434,6 +430,10 @@ function initHero() {
   tl.to(tvGroup.position, { y: restY, duration: 2.0, ease: 'power4.in' })
   // Impact — left peg snaps, TV tilts
   .call(() => { screenShake(0.03, 700); pageShake(4, 350); })
+  .call(() => {
+    showreelVideo.currentTime = 0;
+    showreelVideo.play().catch(() => {});
+  })
   // Left peg crushes flat
   .to(legL.scale, { y: 0.02, x: 1.5, z: 1.5, duration: 0.08, ease: 'expo.out',
     onComplete: () => { legL.visible = false; }
@@ -458,17 +458,6 @@ function initHero() {
   // Camera pushes in
   .addLabel('camPush')
   .to(camera.position, { z: 7.5, x: 0.15, y: 1.0, duration: 3.0, ease: 'power3.inOut' }, 'camPush')
-  // CRT blink on like an old light — warm flicker then steady
-  .call(() => {
-    showreelVideo.currentTime = 0;
-    showreelVideo.play().catch(() => {});
-    // Ensure color starts black (should already be)
-    screenMat.color.set(0x000000);
-  }, null, 'camPush+=0.5')
-  .to(screenMat.color, { r: 0.2, g: 0.2, b: 0.2, duration: 0.04 })
-  .to(screenMat.color, { r: 0.9, g: 0.9, b: 0.9, duration: 0.04 })
-  .to(screenMat.color, { r: 0.3, g: 0.3, b: 0.3, duration: 0.03 })
-  .to(screenMat.color, { r: 1, g: 1, b: 1, duration: 0.25, ease: 'power2.out' });
 
   // Fixed lookAt target — never tilts to follow the TV
   const lookTarget = new THREE.Vector3(0, 0.3, 0);
@@ -499,7 +488,7 @@ function initHero() {
 
 
 
-    composer.render();
+    renderer.render(scene, camera);
 
     // Undo shake
     camera.position.x -= shakeTarget.x;
@@ -511,7 +500,6 @@ function initHero() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-    composer.setSize(window.innerWidth, window.innerHeight);
   };
   window.addEventListener('resize', onResize);
 
