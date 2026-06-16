@@ -1,0 +1,33 @@
+---
+// Contact CTA for homepage
+---
+
+<section class="relative py-32" data-animate>
+  <div class="grain-overlay" />
+  <div class="relative z-10 max-w-2xl mx-auto px-6 text-center">
+    <p class="eyebrow">Contact</p>
+    <h2 class="section-heading mb-6">Get in Touch</h2>
+    <p class="body-text mb-8">Ready to create something remarkable? Let's talk about your next project.</p>
+    <a href="/contact" class="btn-primary">Contact Me</a>
+  </div>
+</section>
+
+<script>
+  import { gsap } from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  document.addEventListener('astro:page-load', () => {
+    gsap.from('[data-animate]', {
+      scrollTrigger: {
+        trigger: '[data-animate]',
+        start: 'top 80%',
+      },
+      opacity: 0,
+      y: 40,
+      duration: 0.8,
+      ease: 'power3.out',
+    });
+  });
+</script>

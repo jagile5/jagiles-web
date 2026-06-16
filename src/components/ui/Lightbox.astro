@@ -1,0 +1,60 @@
+---
+// Lightbox modal for video playback
+---
+
+<div id="video-lightbox" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+  <div class="relative max-w-5xl w-full mx-4">
+    <button id="lightbox-close" class="absolute -top-12 right-0 text-white text-2xl hover:text-primary transition-colors">
+      Close
+    </button>
+    <div id="lightbox-video" class="relative w-full aspect-video bg-black rounded-lg overflow-hidden"></div>
+  </div>
+</div>
+
+<script>
+  const lightbox = document.getElementById('video-lightbox')!;
+  const lightboxVideo = document.getElementById('lightbox-video')!;
+  const closeBtn = document.getElementById('lightbox-close')!;
+
+  let isOpen = false;
+
+  function openLightbox(videoId: string) {
+    isOpen = true;
+    lightbox.classList.remove('hidden');
+    lightboxVideo.innerHTML = `
+      <iframe
+        class="w-full h-full"
+        src="https://www.youtube.com/embed/${videoId}?autoplay=1"
+        title="Video playback"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen
+      ></iframe>
+    `;
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLightbox() {
+    isOpen = false;
+    lightbox.classList.add('hidden');
+    lightboxVideo.innerHTML = '';
+    document.body.style.overflow = '';
+  }
+
+  document.addEventListener('astro:page-load', () => {
+    document.querySelectorAll<HTMLElement>('[data-video]').forEach((card) => {
+      card.addEventListener('click', () => {
+        const url = card.dataset.video!;
+        const id = url.split('/').pop()!;
+        openLightbox(id);
+      });
+    });
+
+    closeBtn.addEventListener('click', closeLightbox);
+    lightbox.addEventListener('click', (e) => {
+      if (e.target === lightbox) closeLightbox();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && isOpen) closeLightbox();
+    });
+  });
+</script>

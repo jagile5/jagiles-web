@@ -1,0 +1,23 @@
+{
+  "name": "jagiles",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "devDependencies": {
+    "@astrojs/tailwind": "^6.0.2",
+    "astro": "^5.18.1",
+    "autoprefixer": "^10.5.0",
+    "postcss": "^8.5.15",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "gsap": "^3.15.0",
+    "three": "^0.184.0",
+    "ytdl-core": "^4.11.5"
+  }
+}

@@ -1,0 +1,71 @@
+---
+import '../styles/global.css';
+
+export interface Props {
+  title?: string;
+}
+
+const { title = 'Joshua Giles — Videography · VFX · Drone' } = Astro.props;
+const currentPath = Astro.url.pathname;
+
+const navLinks = [
+  { href: '/', label: 'Home' },
+  { href: '/work', label: 'Work' },
+  { href: '/about', label: 'About' },
+  { href: '/contact', label: 'Contact' },
+];
+---
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  </head>
+  <body class="relative">
+    <div class="grain-overlay fixed inset-0 pointer-events-none z-0"></div>
+
+    <nav class="fixed top-0 left-0 right-0 z-40 bg-bg/80 backdrop-blur-md border-b border-white/5">
+      <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        <a href="/" class="font-display font-bold text-xl text-text hover:text-primary transition-colors">
+          JAG
+        </a>
+        <div class="flex items-center gap-8">
+          {navLinks.map(({ href, label }) => (
+            <a
+              href={href}
+              class:list={[
+                'text-sm font-medium transition-colors duration-200',
+                currentPath === href
+                  ? 'text-primary'
+                  : 'text-text/60 hover:text-text',
+              ]}
+            >
+              {label}
+            </a>
+          ))}
+        </div>
+      </div>
+    </nav>
+
+    <main class="relative z-10 pt-16">
+      <slot />
+    </main>
+
+    <footer class="relative z-10 border-t border-white/5 bg-bg px-6 py-12 text-sm text-text/50">
+      <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+        <p>&copy; {new Date().getFullYear()} Joshua Giles. All rights reserved.</p>
+        <div class="flex gap-6">
+          <a href="https://instagram.com/josh_giles_or_something" target="_blank" rel="noopener noreferrer"
+             class="hover:text-primary transition-colors">Instagram</a>
+          <a href="https://linkedin.com/in/j-a-giles" target="_blank" rel="noopener noreferrer"
+             class="hover:text-primary transition-colors">LinkedIn</a>
+          <a href="mailto:joshua.allin.giles@gmail.com" class="hover:text-primary transition-colors">Email</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

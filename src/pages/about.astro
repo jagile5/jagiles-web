@@ -1,0 +1,73 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="About — Joshua Giles">
+  <section class="relative min-h-[80vh] py-32">
+    <div class="grain-overlay" />
+    <div class="relative z-10 max-w-7xl mx-auto px-6" data-animate>
+      <p class="eyebrow">About</p>
+      <h1 class="section-heading mb-12">Joshua Giles</h1>
+
+      <div class="max-w-3xl space-y-6 body-text">
+        <p class="text-xl font-display font-semibold text-text">
+          Vancouver-based. New Zealand-born. Obsessed with the craft.
+        </p>
+        <p>
+          Joshua Giles is a videographer, drone operator, and VFX/CGI artist specializing in cinematic storytelling through motion. With roots in New Zealand's landscapes and now based in Vancouver's creative scene, Joshua brings a unique perspective to every project.
+        </p>
+        <p>
+          His work spans recruitment videos, promotional content, drone cinematography, and visual effects — each piece crafted with meticulous attention to detail and a passion for pushing creative boundaries.
+        </p>
+      </div>
+
+      <div class="grid gap-12 md:grid-cols-2 mt-16 max-w-3xl">
+        <div>
+          <h3 class="font-display font-bold text-2xl mb-4">Skills</h3>
+          <ul class="space-y-2 text-text/70">
+            <li>Video Production & Editing</li>
+            <li>Drone Cinematography</li>
+            <li>VFX & CGI</li>
+            <li>Motion Graphics</li>
+            <li>Color Grading</li>
+            <li>Storyboarding</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-display font-bold text-2xl mb-4">Process</h3>
+          <ol class="space-y-2 text-text/70 list-decimal list-inside">
+            <li>Discovery & Concept</li>
+            <li>Pre-production</li>
+            <li>Production & Capture</li>
+            <li>Post-production</li>
+            <li>Review & Delivery</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="mt-16">
+        <a href="/contact" class="btn-primary">Get in Touch</a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  import { gsap } from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  document.addEventListener('astro:page-load', () => {
+    gsap.from('[data-animate]', {
+      scrollTrigger: {
+        trigger: '[data-animate]',
+        start: 'top 80%',
+      },
+      opacity: 0,
+      y: 40,
+      duration: 0.8,
+      ease: 'power3.out',
+    });
+  });
+</script>

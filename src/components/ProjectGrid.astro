@@ -1,0 +1,45 @@
+---
+// Full project grid for the work page
+import VideoCard from './VideoCard.astro';
+
+const projects = [
+  { videoId: 'JiQkZmfhjOI', title: 'CHFT NHS Trust', category: 'Recruitment Video' },
+  { videoId: 'BgkUDztNgQA', title: 'Barnsley Council', category: 'Recruitment Video' },
+  { videoId: 'NY7NORUOcEs', title: 'Billingley Christmas Tree Farm', category: 'Promo' },
+  { videoId: 'zw5FbGgPiXA', title: 'Miata Drift Day', category: 'Drone / Passion Project' },
+];
+---
+
+<section class="relative py-32" data-animate>
+  <div class="grain-overlay" />
+  <div class="relative z-10 max-w-7xl mx-auto px-6">
+    <p class="eyebrow">Work</p>
+    <h2 class="section-heading mb-12">All Projects</h2>
+    <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+      {projects.map((project) => (
+        <VideoCard {...project} />
+      ))}
+    </div>
+  </div>
+</section>
+
+<script>
+  import { gsap } from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  document.addEventListener('astro:page-load', () => {
+    gsap.from('[data-animate] .card', {
+      scrollTrigger: {
+        trigger: '[data-animate]',
+        start: 'top 80%',
+      },
+      opacity: 0,
+      y: 30,
+      stagger: 0.1,
+      duration: 0.8,
+      ease: 'power3.out',
+    });
+  });
+</script>

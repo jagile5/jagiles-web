@@ -1,0 +1,45 @@
+---
+// Client logo marquee
+const clients = [
+  'Young and Restless',
+  'Christchurch Academy of Dance',
+  'Zero Carbon Shropshire',
+  'Diebold Woodworks',
+  'Fairbuilt Building Specialists',
+  'Riwaka School',
+  'Grand River Modular',
+  'Onewheel In The Middle',
+];
+---
+
+<section class="relative py-24 bg-alt" data-animate>
+  <div class="grain-overlay" />
+  <div class="relative z-10 max-w-7xl mx-auto px-6">
+    <p class="eyebrow">Clients</p>
+    <h2 class="section-heading mb-12">Trusted By</h2>
+  </div>
+  <div class="relative z-10 overflow-hidden">
+    <div class="marquee-track flex gap-16 whitespace-nowrap">
+      {[...clients, ...clients, ...clients].map((client) => (
+        <img
+          src="/logos/Logo_Frame_W.png"
+          alt={client}
+          class="w-40 h-40 object-contain brightness-0 invert opacity-40 flex-shrink-0"
+        />
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .marquee-track {
+    animation: marquee 30s linear infinite;
+  }
+  .marquee-track:hover {
+    animation-play-state: paused;
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-33.333%); }
+  }
+</style>
