@@ -4,7 +4,30 @@
 
 <section id="hero" class="relative w-full h-screen overflow-hidden bg-bg">
   <canvas id="crt-canvas" class="absolute inset-0 w-full h-full"></canvas>
+  <div id="screen-flicker"></div>
+  <div id="screen-sweep"></div>
 </section>
+
+<style>
+  #screen-flicker {
+    position: absolute;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      black 2px,
+      black 4px
+    );
+    opacity: 0;
+  }
+  #screen-sweep {
+    position: absolute;
+    pointer-events: none;
+    background-color: #e8ffe8;
+    opacity: 0;
+  }
+</style>
 
 <script>
 import * as THREE from 'three';
@@ -72,6 +95,133 @@ function initHero() {
   const frontLight = new THREE.DirectionalLight(0xeeeeff, 1.0);
   frontLight.position.set(0, 2, 10);
   scene.add(frontLight);
+
+  // Flicker constants
+  const FLICKER = {
+    flash1On: 0.0,      // seconds after impact
+    flash1Off: 0.08,
+    flash2On: 0.14,
+    flash2Off: 0.20,
+    flash3On: 0.22,
+    flash3Off: 0.28,
+    fullOn: 0.35,
+    scanlineFadeDuration: 4.0,
+  };
+
+  function startFlicker() {
+    // Compute screen rectangle (same logic as updateFlickerOverlay)
+    const width = screenW;
+    const height = screenH;
+    const halfW = width / 2;
+    const halfH = height / 2;
+    const corners = [
+      new THREE.Vector3(-halfW,  halfH, 0),
+      new THREE.Vector3( halfW,  halfH, 0),
+      new THREE.Vector3( halfW, -halfH, 0),
+      new THREE.Vector3(-halfW, -halfH, 0),
+    ];
+    corners.forEach(v => v.applyMatrix4(screenMesh.matrixWorld));
+    const ndcPoints = corners.map(v => {
+      const vec = v.clone().project(camera);
+      return vec;
+    });
+    const _width = window.innerWidth;
+    const _height = window.innerHeight;
+    const points = ndcPoints.map(v => ({
+      x: ((v.x + 1) / 2) * _width,
+      y: ((-v.y + 1) / 2) * _height,
+    }));
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    points.forEach(p => {
+      if (p.x < minX) minX = p.x;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.y > maxY) maxY = p.y;
+    });
+    const rectWidth = Math.max(0, maxX - minX);
+    const rectHeight = Math.max(0, maxY - minY);
+    const rectLeft = minX;
+    const rectTop = minY;
+
+    // Sweep band dimensions
+    const bandHeight = rectHeight * 0.08; // 8% of screen height
+    const initialTop = rectTop + rectHeight - bandHeight; // start at bottom
+    // Set up sweep overlay
+    sweepOverlay.style.left = `${rectLeft}px`;
+    sweepOverlay.style.width = `${rectWidth}px`;
+    sweepOverlay.style.height = `${bandHeight}px`;
+    sweepOverlay.style.top = `${initialTop}px`;
+    sweepOverlay.style.opacity = "1";
+    // Sweep upward over 0.3 seconds
+    gsap.to(sweepOverlay, { top: rectTop, duration: 0.3, ease: "power1.out" });
+
+    // Flash sequence using FLICKER constants
+    gsap.set(sweepOverlay.style, { opacity: 0 }, FLICKER.flash1On);
+    gsap.set(sweepOverlay.style, { opacity: 1 }, FLICKER.flash1Off);
+    gsap.set(sweepOverlay.style, { opacity: 0 }, FLICKER.flash2On);
+    gsap.set(sweepOverlay.style, { opacity: 1 }, FLICKER.flash2Off);
+    gsap.set(sweepOverlay.style, { opacity: 0 }, FLICKER.flash3On);
+    // Reveal video at flash3On
+    gsap.set(screenMat.color, { r: 1, g: 1, b: 1 }, FLICKER.flash3On);
+    // Keep sweep off after flash3On (opacity 0)
+
+    // Scanline overlay fade-in/fade-out
+    gsap.set(flickerOverlay.style, { opacity: 0 });
+    gsap.to(flickerOverlay.style, { opacity: 0.35, duration: 0, delay: FLICKER.fullOn });
+    gsap.to(flickerOverlay.style, { opacity: 0, duration: FLICKER.scanlineFadeDuration, delay: FLICKER.fullOn });
+  }
+
+  function updateFlickerOverlay() {
+    // Compute screen space rectangle of screenMesh
+    const width = screenW;
+    const height = screenH;
+    const halfW = width / 2;
+    const halfH = height / 2;
+
+    // Local coordinates of corners (plane lies in XY? Actually PlaneGeometry default is in XY plane, normal along Z)
+    // We'll assume the plane's local coordinates: x: width, y: height, z=0
+    const corners = [
+      new THREE.Vector3(-halfW,  halfH, 0),
+      new THREE.Vector3( halfW,  halfH, 0),
+      new THREE.Vector3( halfW, -halfH, 0),
+      new THREE.Vector3(-halfW, -halfH, 0),
+    ];
+
+    // Transform to world space
+    corners.forEach(v => v.applyMatrix4(screenMesh.matrixWorld));
+
+    // Project to NDC using camera
+    const ndcPoints = corners.map(v => {
+      const vec = v.clone().project(camera);
+      return vec;
+    });
+
+    // Convert NDC to window coordinates
+    const _width = window.innerWidth;
+    const _height = window.innerHeight;
+    const points = ndcPoints.map(v => ({
+      x: ((v.x + 1) / 2) * _width,
+      y: ((-v.y + 1) / 2) * _height, // Note: NDC y +1 is top, we need to flip
+    }));
+
+    // Find bounding box
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    points.forEach(p => {
+      if (p.x < minX) minX = p.x;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.y > maxY) maxY = p.y;
+    });
+
+    const rectWidth = Math.max(0, maxX - minX);
+    const rectHeight = Math.max(0, maxY - minY);
+
+    // Apply to overlay
+    flickerOverlay.style.left = `${minX}px`;
+    flickerOverlay.style.top = `${minY}px`;
+    flickerOverlay.style.width = `${rectWidth}px`;
+    flickerOverlay.style.height = `${rectHeight}px`;
+  }
 
   // --- Grunge texture generator ---
   function makeGrungeTex(w: number, h: number, baseR: number, baseG: number, baseB: number, seed: number): THREE.CanvasTexture {
@@ -246,11 +396,19 @@ function initHero() {
   videoTex.generateMipmaps = false;
 
   // Screen material — map assigned from start, rendering the texture exactly as-is.
+  // videoTex already created and configured above
   const screenMat = new THREE.MeshBasicMaterial({ map: videoTex });
+  // Start black so video is hidden until flicker-on
+  screenMat.color.set(0x000000);
   const screenW = 2.85, screenH = 1.603;
   const screenMesh = new THREE.Mesh(new THREE.PlaneGeometry(screenW, screenH), screenMat);
   screenMesh.position.set(0, 0.25, bodyD / 2 + 0.5);
   tvGroup.add(screenMesh);
+
+  // Reference to flicker overlay div
+  const flickerOverlay = document.getElementById('screen-flicker');
+  // Reference to sweep overlay div
+  const sweepOverlay = document.getElementById('screen-sweep');
 
 
   // === CONTROLS ===
@@ -429,7 +587,7 @@ function initHero() {
   // Drop — accelerating slam to rest position
   tl.to(tvGroup.position, { y: restY, duration: 2.0, ease: 'power4.in' })
   // Impact — left peg snaps, TV tilts
-  .call(() => { screenShake(0.03, 700); pageShake(4, 350); })
+  .call(() => { screenShake(0.03, 700); pageShake(4, 350); startFlicker(); })
   .call(() => {
     showreelVideo.currentTime = 0;
     showreelVideo.play().catch(() => {});
@@ -482,6 +640,8 @@ function initHero() {
       if (dustPos[i * 3 + 1] > 4) dustPos[i * 3 + 1] = -4;
     }
     dustPoints.geometry.attributes.position.needsUpdate = true;
+
+    updateFlickerOverlay();
 
     // Ensure the video texture pushes new frames to the GPU
     if (videoTex) videoTex.needsUpdate = true;
