@@ -229,7 +229,7 @@ function initHero() {
   showreelVideo.preload = 'auto';
 
   // Pre-buffer the video immediately so frames are ready by blink time
-  showreelVideo.play().catch(() => {});
+  showreelVideo.load();
 
   
   const videoTex = new THREE.VideoTexture(showreelVideo);
@@ -385,9 +385,9 @@ function initHero() {
 
   const bloomPass = new UnrealBloomPass(
     new THREE.Vector2(window.innerWidth, window.innerHeight),
-    0.25,   // strength
+    0.08,   // strength
     0.5,    // radius
-    0.15    // threshold
+    0.4     // threshold
   );
   composer.addPass(bloomPass);
 
@@ -460,6 +460,7 @@ function initHero() {
   .to(camera.position, { z: 7.5, x: 0.15, y: 1.0, duration: 3.0, ease: 'power3.inOut' }, 'camPush')
   // CRT blink on like an old light — warm flicker then steady
   .call(() => {
+    showreelVideo.currentTime = 0;
     showreelVideo.play().catch(() => {});
     // Ensure color starts black (should already be)
     screenMat.color.set(0x000000);
