@@ -1,41 +1,53 @@
 // Project data for the Work section
-// Each project defines its display information and video preview URL.
 
 export interface Project {
   title: string;
-  category: string[]; // e.g. ["Drone", "Commercial"]
+  client: string;
+  category: string[];
   year: number;
-  videoUrl: string; // Direct link to MP4 or hosted video file
-  slug: string; // URL-friendly identifier for the project page (if needed)
+  videoUrl: string;
+  slug: string;
 }
 
 export const projects: Project[] = [
   {
-    title: "North Shore Drone Reel",
-    category: ["Drone", "Commercial"],
+    title: "CHFT NHS Trust",
+    client: "Recruitment Video",
+    category: ["Recruitment", "Healthcare"],
     year: 2024,
-    videoUrl: "/assets/videos/north-shore-drone.mp4",
-    slug: "north-shore-drone",
+    videoUrl: "https://www.youtube.com/embed/JiQkZmfhjOI",
+    slug: "chft-nhs-trust",
   },
   {
-    title: "Vancouver Skyline Time‑Lapse",
-    category: ["Events", "Commercial"],
-    year: 2023,
-    videoUrl: "/assets/videos/vancouver-skyline.mp4",
-    slug: "vancouver-skyline",
+    title: "Barnsley Council",
+    client: "Recruitment Video",
+    category: ["Recruitment", "Government"],
+    year: 2024,
+    videoUrl: "https://www.youtube.com/embed/BGkUDztNgQA",
+    slug: "barnsley-council-recruitment",
   },
   {
-    title: "Mountain Adventure Promo",
-    category: ["Adventure", "Commercial"],
-    year: 2025,
-    videoUrl: "/assets/videos/mountain-adventure.mp4",
-    slug: "mountain-adventure",
+    title: "Billingley Christmas Tree Farm",
+    client: "Promotional Video",
+    category: ["Promotional", "Holiday"],
+    year: 2024,
+    videoUrl: "https://www.youtube.com/embed/NY7NORUOcEs",
+    slug: "billingley-christmas-tree-farm",
   },
   {
-    title: "Personal Drone Experiment",
+    title: "Miata Drift Day",
+    client: "Passion Project - Drone",
     category: ["Drone", "Passion Project"],
-    year: 2022,
-    videoUrl: "/assets/videos/personal-drone.mp4",
-    slug: "personal-drone",
+    year: 2024,
+    videoUrl: "https://www.youtube.com/embed/zw5FbGgPiXA",
+    slug: "miata-drift-day",
+  },
+  {
+    title: "Barnsley Council",
+    client: "PRomotional Video (Instagram)",
+    category: ["Promotional", "Social Media"],
+    year: 2024,
+    videoUrl: "https://www.instagram.com/reel/CfrVUIHDZBe/",
+    slug: "barnsley-council-instagram",
   },
 ];

@@ -1,25 +1,35 @@
 ---
-// Grid of selected work
 import VideoCard from './VideoCard.astro';
-
-import { projects as allProjects } from '../data/projects';
-
-// For the homepage we show a few highlighted projects (e.g., the first three)
-const projects = allProjects.slice(0, 3);
+import { projects } from '../data/projects';
 ---
 
-<section class="relative py-32" data-animate>
+<section class="relative py-32" id="work">
   <div class="grain-overlay" />
-  <div class="relative z-10 max-w-7xl mx-auto px-6">
-    <p class="eyebrow">Work</p>
-    <h2 class="section-heading mb-12">Selected Work</h2>
-    <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-      {projects.map((project) => (
-        <VideoCard {...project} />
-      ))}
+  <div class="relative z-10 max-w-6xl mx-auto px-6">
+    <p class="eyebrow text-center">Work</p>
+    <h2 class="section-heading mb-10 text-center">Selected Work</h2>
+
+    <div class="relative" id="work-list-wrapper">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10" id="work-list">
+        {projects.map((project) => (
+          <VideoCard {...project} />
+        ))}
+      </div>
+      <!-- Overlay rendered ON TOP of the grid via high z-index -->
+      <div id="work-hover-overlay" class="pointer-events-none"
+           style="position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:9998; opacity:0; transition: opacity 500ms ease-out;
+                  background: rgba(255,0,0,0.7);">
+      </div>
     </div>
   </div>
 </section>
+
+<style is:global>
+  #work .work-card.is-hovered {
+    position: relative;
+    z-index: 9999 !important;
+  }
+</style>
 
 <script>
   import { gsap } from 'gsap';
@@ -28,16 +38,60 @@ const projects = allProjects.slice(0, 3);
   gsap.registerPlugin(ScrollTrigger);
 
   document.addEventListener('astro:page-load', () => {
-    gsap.from('[data-animate] .card', {
+    const cards = document.querySelectorAll<HTMLElement>('.work-card');
+    const overlay = document.getElementById('work-hover-overlay') as HTMLElement;
+
+    gsap.from(cards, {
       scrollTrigger: {
-        trigger: '[data-animate]',
+        trigger: '#work-list',
         start: 'top 80%',
       },
       opacity: 0,
-      y: 30,
-      stagger: 0.1,
-      duration: 0.8,
+      y: 40,
+      stagger: 0.15,
+      duration: 0.9,
       ease: 'power3.out',
     });
+
+    const isTouchDevice = window.matchMedia('(hover: none)').matches;
+
+    if (!isTouchDevice) {
+      cards.forEach(card => {
+        card.addEventListener('mouseenter', () => {
+          overlay.style.opacity = '1';
+          card.classList.add('is-hovered');
+          // Try to play video element if it exists (for local MP4 videos)
+          const video = card.querySelector<HTMLVideoElement>('video');
+          if (video) {
+            video.play().catch(() => {});
+          }
+          // For YouTube iframes, add autoplay parameter to start playing on hover
+          const iframe = card.querySelector('iframe');
+          if (iframe && iframe.src.includes('youtube.com')) {
+            const youtubeUrl = iframe.src.split('?')[0];
+            const videoId = youtubeUrl.split('/').pop();
+            iframe.src = `${youtubeUrl}?autoplay=1&mute=1&controls=0&modestbranding=1&showinfo=0&rel=0&loop=1&playlist=${videoId}`;
+          }
+        });
+
+        card.addEventListener('mouseleave', () => {
+          overlay.style.opacity = '0';
+          card.classList.remove('is-hovered');
+          // Try to pause and reset video element if it exists
+          const video = card.querySelector<HTMLVideoElement>('video');
+          if (video) {
+            video.pause();
+            video.currentTime = 0;
+          }
+          // For YouTube iframes, remove autoplay parameter to stop playing on mouse leave
+          const iframe = card.querySelector('iframe');
+          if (iframe && iframe.src.includes('youtube.com')) {
+            const youtubeUrl = iframe.src.split('?')[0];
+            const videoId = youtubeUrl.split('/').pop();
+            iframe.src = `${youtubeUrl}?mute=1&controls=0&modestbranding=1&showinfo=0&rel=0&loop=1&playlist=${videoId}`;
+          }
+        });
+      });
+    }
   });
 </script>
