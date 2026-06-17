@@ -94,28 +94,42 @@ const thumbnailUrl = youtubeId ? `https://img.youtube.com/vi/${youtubeId}/maxres
 
       let iframe = null;
       let thumbnail = container.querySelector('[data-yt-thumb]');
+      let fadeTimeout = null;
 
       container.addEventListener('mouseenter', () => {
-        // Remove thumbnail if present
-        if (thumbnail) {
-          thumbnail.remove();
-          thumbnail = null;
-        }
-        // Insert fresh iframe
+        // Remove any pending leave-timeout
+        if (fadeTimeout) { clearTimeout(fadeTimeout); fadeTimeout = null; }
+        // Create iframe immediately but hidden
         if (!iframe) {
           iframe = document.createElement('iframe');
-          iframe.setAttribute('src', `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}`);
+          iframe.setAttribute('src', `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3`);
           iframe.setAttribute('title', videoTitle);
           iframe.setAttribute('frameborder', '0');
           iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
           iframe.setAttribute('allowfullscreen', '');
           iframe.className = 'w-full h-full absolute inset-0';
-          iframe.style.display = 'block';
+          iframe.style.opacity = '0';
+          iframe.style.transition = 'opacity 250ms ease-out';
+          iframe.style.pointerEvents = 'none';
+          container.appendChild(iframe);
         }
-        container.appendChild(iframe);
+        // Keep thumbnail visible while iframe loads, then fade it out
+        fadeTimeout = setTimeout(() => {
+          if (thumbnail) {
+            thumbnail.remove();
+            thumbnail = null;
+          }
+          if (iframe) {
+            iframe.style.opacity = '1';
+            iframe.style.pointerEvents = 'auto';
+          }
+          fadeTimeout = null;
+        }, 450);
       });
 
       container.addEventListener('mouseleave', () => {
+        // Cancel any pending fade-in if user left quickly
+        if (fadeTimeout) { clearTimeout(fadeTimeout); fadeTimeout = null; }
         // Remove iframe entirely so playback stops and bandwidth is freed
         if (iframe && iframe.parentNode) {
           iframe.parentNode.removeChild(iframe);
@@ -136,6 +150,23 @@ const thumbnailUrl = youtubeId ? `https://img.youtube.com/vi/${youtubeId}/maxres
           container.appendChild(thumbnail);
         }
       });
+
+      // Prefetch: preconnect to YouTube on scroll-into-view so the
+      // connection handshake is already done by the time the user hovers
+      const observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+          const link = document.createElement('link');
+          link.rel = 'preconnect';
+          link.href = 'https://www.youtube.com';
+          document.head.appendChild(link);
+          const imgLink = document.createElement('link');
+          imgLink.rel = 'preconnect';
+          imgLink.href = 'https://img.youtube.com';
+          document.head.appendChild(imgLink);
+          observer.disconnect();
+        }
+      });
+      observer.observe(container);
     });
   });
 </script>
