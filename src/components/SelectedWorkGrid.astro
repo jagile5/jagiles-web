@@ -2,12 +2,10 @@
 // Grid of selected work
 import VideoCard from './VideoCard.astro';
 
-const projects = [
-  { videoId: 'JiQkZmfhjOI', title: 'CHFT NHS Trust', category: 'Recruitment Video' },
-  { videoId: 'BgkUDztNgQA', title: 'Barnsley Council', category: 'Recruitment Video' },
-  { videoId: 'NY7NORUOcEs', title: 'Billingley Christmas Tree Farm', category: 'Promo' },
-  { videoId: 'zw5FbGgPiXA', title: 'Miata Drift Day', category: 'Drone / Passion Project' },
-];
+import { projects as allProjects } from '../data/projects';
+
+// For the homepage we show a few highlighted projects (e.g., the first three)
+const projects = allProjects.slice(0, 3);
 ---
 
 <section class="relative py-32" data-animate>

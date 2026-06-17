@@ -1,22 +1,36 @@
 ---
 // Full project grid for the work page
 import VideoCard from './VideoCard.astro';
+import { projects } from '../data/projects';
 
-const projects = [
-  { videoId: 'JiQkZmfhjOI', title: 'CHFT NHS Trust', category: 'Recruitment Video' },
-  { videoId: 'BgkUDztNgQA', title: 'Barnsley Council', category: 'Recruitment Video' },
-  { videoId: 'NY7NORUOcEs', title: 'Billingley Christmas Tree Farm', category: 'Promo' },
-  { videoId: 'zw5FbGgPiXA', title: 'Miata Drift Day', category: 'Drone / Passion Project' },
-];
+// Extract unique category strings for filter pills
+const allCategories = Array.from(
+  new Set(projects.flatMap(p => p.category))
+);
+
+// Default filter shows all projects
+let activeFilter = 'All';
+
+function filterProjects() {
+  if (activeFilter === 'All') return projects;
+  return projects.filter(p => p.category.includes(activeFilter));
+}
+
 ---
 
 <section class="relative py-32" data-animate>
   <div class="grain-overlay" />
   <div class="relative z-10 max-w-7xl mx-auto px-6">
     <p class="eyebrow">Work</p>
-    <h2 class="section-heading mb-12">All Projects</h2>
+    <h2 class="section-heading mb-6">All Projects</h2>
+    <div class="flex flex-wrap gap-2 mb-6">
+      <button class="filter-pill px-3 py-1 rounded-full text-sm bg-gray-800 text-white hover:bg-gray-700" data-filter="All">All</button>
+      {allCategories.map((cat) => (
+        <button class="filter-pill px-3 py-1 rounded-full text-sm bg-gray-800 text-white hover:bg-gray-700" data-filter={cat}>{cat}</button>
+      ))}
+    </div>
     <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-      {projects.map((project) => (
+      {filterProjects().map((project) => (
         <VideoCard {...project} />
       ))}
     </div>
@@ -29,6 +43,7 @@ const projects = [
 
   gsap.registerPlugin(ScrollTrigger);
 
+  // Animate cards on scroll
   document.addEventListener('astro:page-load', () => {
     gsap.from('[data-animate] .card', {
       scrollTrigger: {
@@ -40,6 +55,32 @@ const projects = [
       stagger: 0.1,
       duration: 0.8,
       ease: 'power3.out',
+    });
+
+    // Filter pill interaction
+    const pills = document.querySelectorAll('[data-filter]');
+    const cards = document.querySelectorAll('[data-categories]');
+    function setActive(filter) {
+      pills.forEach(p => p.classList.toggle('bg-primary', p.dataset.filter === filter));
+      cards.forEach(card => {
+        const cats = card.dataset.categories.split(' ');
+        if (filter === 'All' || cats.includes(filter)) {
+          card.classList.remove('hidden');
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+    }
+    pills.forEach(p => {
+      p.addEventListener('click', () => setActive(p.dataset.filter));
+    });
+
+    // Hover video play/pause (desktop only)
+    cards.forEach(card => {
+      const video = card.querySelector('video');
+      if (!video) return;
+      card.addEventListener('mouseenter', () => video.play());
+      card.addEventListener('mouseleave', () => video.pause());
     });
   });
 </script>

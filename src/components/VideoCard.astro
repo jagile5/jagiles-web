@@ -1,21 +1,24 @@
 ---
 export interface Props {
-  videoId: string;
+  videoUrl: string;
   title: string;
-  category: string;
+  category: string[];
+  year: number;
 }
 
-const { videoId, title, category } = Astro.props;
+const { videoUrl, title, category, year } = Astro.props;
 ---
 
-<div class="card group cursor-pointer" data-video={`https://www.youtube.com/embed/${videoId}`}>
+<div class="card group cursor-pointer" data-categories={category.join(' ')}>
   <div class="w-full aspect-video rounded-t-2xl overflow-hidden relative">
-    <img
-      src={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
-      alt={`${title} thumbnail`}
-      class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-      loading="lazy"
-    />
+    <video
+        src={videoUrl}
+        muted
+        loop
+        preload="metadata"
+        class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+        loading="lazy"
+      ></video>
     <div class="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-colors duration-300">
       <svg class="w-12 h-12 text-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300" viewBox="0 0 24 24" fill="currentColor">
         <path d="M8 5v14l11-7z" />
@@ -24,6 +27,6 @@ const { videoId, title, category } = Astro.props;
   </div>
   <div class="p-4">
     <h3 class="font-display font-semibold text-lg mb-1">{title}</h3>
-    <p class="text-sm text-text/50">{category}</p>
+    <p class="text-sm text-text/50">{category.join(', ')} • {year}</p>
   </div>
 </div>
