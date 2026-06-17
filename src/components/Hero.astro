@@ -5,6 +5,18 @@
 <section id="hero" class="relative w-full h-screen overflow-hidden bg-bg">
   <canvas id="crt-canvas" class="absolute inset-0 w-full h-full"></canvas>
   <div id="screen-flicker" style="position:absolute;inset:0;pointer-events:none;opacity:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.4) 2px,rgba(0,0,0,0.4) 4px);"></div>
+  <div id="pause-overlay" style="position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.2s;">
+    <div style="color:rgba(255,255,255,0.6);font-size:6rem;font-family:sans-serif;letter-spacing:0.5rem;text-shadow:0 0 20px rgba(255,255,255,0.3);">❚❚</div>
+  </div>
+  <div id="mute-overlay" style="position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity 0.2s;">
+    <div style="position:absolute;top:19%;right:28%;filter:drop-shadow(0 0 12px rgba(255,255,255,0.3));">
+      <svg viewBox="0 0 24 24" style="width:2.1rem;height:2.1rem;">
+        <rect x="2" y="8" width="4" height="8" fill="rgba(255,255,255,0.6)"/>
+        <polygon points="6,8 12,3 12,21 6,16" fill="rgba(255,255,255,0.6)"/>
+        <line x1="3" y1="21" x2="21" y2="3" stroke="rgba(255,255,255,0.6)" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+  </div>
 </section>
 
 <script>
@@ -253,7 +265,7 @@ function initHero() {
   const screenMat = new THREE.MeshBasicMaterial({ map: videoTex, color: 0x000000 });
   const screenW = 2.85, screenH = 1.603;
   const screenMesh = new THREE.Mesh(new THREE.PlaneGeometry(screenW, screenH), screenMat);
-  screenMesh.position.set(0.02, 0.26, bodyD / 2 + 0.5);
+  screenMesh.position.set(0.01, 0.27, bodyD / 2 + 0.5);
   screenMesh.renderOrder = 0;
   tvGroup.add(screenMesh);
 
@@ -557,20 +569,170 @@ function initHero() {
   labelMesh.position.set(0, ctrlY, ctrlZ + 0.04);
   tvGroup.add(labelMesh);
 
-  // Simple knob — no handles, just a ridged cylinder + indicator dot
-  function makeKnob(x: number): THREE.Group {
-    const g = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.06, 24), trimMat);
-    body.rotation.x = Math.PI / 2; g.add(body);
-    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.012, 6, 20), chromeMat);
-    rim.rotation.x = Math.PI / 2; rim.position.z = 0.015; g.add(rim);
-    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.012, 8, 8), chromeMat);
-    dot.position.set(0, 0.035, 0); g.add(dot);
-    g.position.set(x, ctrlY, ctrlZ + 0.04);
-    return g;
+  // --- Video control buttons (play/pause, mute, fast-forward) ---
+  const btnBaseZ = ctrlZ + 0.04;
+
+  function makeIconTex(draw: (ctx: CanvasRenderingContext2D, s: number) => void): THREE.CanvasTexture {
+    const sz = 64;
+    const c = document.createElement('canvas');
+    c.width = sz; c.height = sz;
+    const ctx = c.getContext('2d')!;
+    ctx.clearRect(0, 0, sz, sz);
+    ctx.fillStyle = '#b0b0b0';
+    draw(ctx, sz);
+    return new THREE.CanvasTexture(c);
   }
-  tvGroup.add(makeKnob(-1.0));
-  tvGroup.add(makeKnob(-0.6));
+
+  function makeIconButton(x: number, iconTex: THREE.CanvasTexture): THREE.Mesh {
+    const btn = new THREE.Mesh(new RoundedBoxGeometry(0.117, 0.117, 0.052, 4, 0.02), trimMat);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.059, 0.01, 6, 20), chromeMat);
+    rim.position.z = 0.027;
+    btn.add(rim);
+    const iconPlane = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.078, 0.078),
+      new THREE.MeshStandardMaterial({ map: iconTex, roughness: 0.3, metalness: 0.4, transparent: true, depthWrite: false })
+    );
+    iconPlane.position.z = 0.028;
+    btn.add(iconPlane);
+    btn.position.set(x, ctrlY, btnBaseZ);
+    return btn;
+  }
+
+  // Pause — two vertical bars
+  const pauseIconTex = makeIconTex((ctx, s) => {
+    const bw = s * 0.12, bh = s * 0.45;
+    ctx.fillRect(s * 0.28, s * 0.275, bw, bh);
+    ctx.fillRect(s * 0.6, s * 0.275, bw, bh);
+  });
+
+  // Speaker — cone body + sound wave arcs
+  const speakerIconTex = makeIconTex((ctx, s) => {
+    ctx.beginPath();
+    ctx.moveTo(s * 0.2, s * 0.35);
+    ctx.lineTo(s * 0.35, s * 0.35);
+    ctx.lineTo(s * 0.5, s * 0.2);
+    ctx.lineTo(s * 0.5, s * 0.8);
+    ctx.lineTo(s * 0.35, s * 0.65);
+    ctx.lineTo(s * 0.2, s * 0.65);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#b0b0b0';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(s * 0.55, s * 0.5, s * 0.12, -0.9, 0.9);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(s * 0.55, s * 0.5, s * 0.22, -0.9, 0.9);
+    ctx.stroke();
+  });
+
+  // Fast-forward — two right-pointing triangles
+  const ffIconTex = makeIconTex((ctx, s) => {
+    ctx.beginPath();
+    ctx.moveTo(s * 0.18, s * 0.22);
+    ctx.lineTo(s * 0.42, s * 0.5);
+    ctx.lineTo(s * 0.18, s * 0.78);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(s * 0.48, s * 0.22);
+    ctx.lineTo(s * 0.72, s * 0.5);
+    ctx.lineTo(s * 0.48, s * 0.78);
+    ctx.closePath();
+    ctx.fill();
+  });
+
+  const playPauseBtn = makeIconButton(-1.1, pauseIconTex);
+  const muteBtn = makeIconButton(-0.8, speakerIconTex);
+  const ffBtn = makeIconButton(-0.5, ffIconTex);
+  tvGroup.add(playPauseBtn);
+  tvGroup.add(muteBtn);
+  tvGroup.add(ffBtn);
+
+  // --- Raycaster for button clicks ---
+  const raycaster = new THREE.Raycaster();
+  const pointer = new THREE.Vector2();
+
+  function pressButton(mesh: THREE.Mesh) {
+    gsap.to(mesh.position, {
+      z: btnBaseZ - 0.06,
+      duration: 0.15,
+      ease: 'power3.in',
+      onComplete: () => {
+        gsap.to(mesh.position, {
+          z: btnBaseZ + 0.015,
+          duration: 0.28,
+          ease: 'power2.out',
+          onComplete: () => {
+            gsap.to(mesh.position, {
+              z: btnBaseZ - 0.005,
+              duration: 0.18,
+              ease: 'sine.inOut',
+              onComplete: () => {
+                gsap.to(mesh.position, {
+                  z: btnBaseZ,
+                  duration: 0.15,
+                  ease: 'elastic.out(1.2, 0.3)',
+                });
+              },
+            });
+          },
+        });
+      },
+    });
+  }
+
+  function onCanvasClick(e: MouseEvent) {
+    const rect = canvas.getBoundingClientRect();
+    pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(pointer, camera);
+    const hits = raycaster.intersectObjects([playPauseBtn, muteBtn, ffBtn], false);
+    if (hits.length === 0) return;
+    const hitMesh = hits[0].object as THREE.Mesh;
+
+    pressButton(hitMesh);
+
+    if (hitMesh === playPauseBtn) {
+      if (showreelVideo.paused) {
+        showreelVideo.play().catch(() => {});
+      } else {
+        showreelVideo.pause();
+      }
+      updatePauseState();
+    } else if (hitMesh === muteBtn) {
+      showreelVideo.muted = !showreelVideo.muted;
+      updateMuteState();
+    } else if (hitMesh === ffBtn) {
+      showreelVideo.currentTime = Math.min(showreelVideo.currentTime + 10, showreelVideo.duration || 0);
+    }
+  }
+
+  canvas.addEventListener('click', onCanvasClick);
+
+  // --- Screen overlay state feedback ---
+  const pauseOverlay = document.getElementById('pause-overlay')!;
+  const muteOverlay = document.getElementById('mute-overlay')!;
+  const screenFlicker = document.getElementById('screen-flicker')!;
+
+  function updatePauseState() {
+    const paused = showreelVideo.paused;
+    if (paused) {
+      gsap.to(pauseOverlay, { opacity: 1, duration: 0.2 });
+      gsap.to(screenFlicker, { opacity: 0.15, duration: 0.2 });
+    } else {
+      gsap.to(pauseOverlay, { opacity: 0, duration: 0.2 });
+      gsap.to(screenFlicker, { opacity: 0, duration: 0.3 });
+    }
+  }
+
+  function updateMuteState() {
+    if (showreelVideo.muted) {
+      gsap.to(muteOverlay, { opacity: 1, duration: 0.2 });
+    } else {
+      gsap.to(muteOverlay, { opacity: 0, duration: 0.2 });
+    }
+  }
 
   // Channel dial — larger, with ridges
   const dialBody = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.06, 28), trimMat);
@@ -588,6 +750,126 @@ function initHero() {
   dot.position.set(0.06, 0, 0.035); dialGroup.add(dot);
   dialGroup.position.set(1.3, ctrlY, ctrlZ + 0.04);
   tvGroup.add(dialGroup);
+
+  // --- Channel dial easter egg ---
+  let dialClicks = 0;
+  let dialDetached = false;
+
+  // Glitch overlay mesh — static/snow bars-and-tone flicker, sits in front of screen
+  const staticCanvas = document.createElement('canvas');
+  staticCanvas.width = 256; staticCanvas.height = 256;
+  const sctx = staticCanvas.getContext('2d')!;
+  let sRand = 1;
+  const sRandom = () => { sRand = (sRand * 16807 + 0) % 2147483647; return (sRand & 0x7fffffff) / 0x7fffffff; };
+  // Draw color bars + noise hybrid
+  const barColors = ['#c0c0c0', '#c0c000', '#00c0c0', '#00c000', '#c000c0', '#c00000', '#0000c0'];
+  for (let y = 0; y < 256; y += 36) {
+    sctx.fillStyle = barColors[(y / 36 | 0) % barColors.length];
+    sctx.globalAlpha = 0.5;
+    sctx.fillRect(0, y, 256, 36);
+    // noise speckle on top
+    sctx.globalAlpha = 0.15;
+    for (let x = 0; x < 256; x += 2) {
+      const v = sRandom() > 0.5 ? 255 : 0;
+      sctx.fillStyle = `rgb(${v},${v},${v})`;
+      sctx.fillRect(x, y + Math.floor(sRandom() * 36), 2, 1);
+    }
+  }
+  sctx.globalAlpha = 1.0;
+  const staticTex = new THREE.CanvasTexture(staticCanvas);
+  staticTex.wrapS = THREE.RepeatWrapping;
+  staticTex.wrapT = THREE.RepeatWrapping;
+
+  const glitchMat = new THREE.MeshBasicMaterial({
+    map: staticTex,
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0,
+    depthTest: false,
+  });
+  const glitchPlane = new THREE.Mesh(new THREE.PlaneGeometry(screenW, screenH), glitchMat);
+  glitchPlane.position.set(0.01, 0.27, bodyD / 2 + 0.51);
+  glitchPlane.renderOrder = 2;
+  tvGroup.add(glitchPlane);
+
+  function barsAndToneGlitch() {
+    // Brief static flash — snap in then fade out over 0.3s
+    gsap.to(glitchMat, { opacity: 0.6, duration: 0.03 });
+    // Scramble the texture offset for a channel-switch feel
+    glitchPlane.material.map!.offset.set(Math.random(), Math.random());
+    gsap.to(glitchMat, { opacity: 0, duration: 0.3, delay: 0.05, ease: 'power2.out' });
+  }
+
+  function onDialClick(e: MouseEvent) {
+    if (dialDetached) return;
+
+    const rect = canvas.getBoundingClientRect();
+    pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(pointer, camera);
+    const hits = raycaster.intersectObjects([dialGroup], true);
+    if (hits.length === 0) return;
+
+    dialClicks++;
+
+    if (dialClicks >= 4) {
+      // Fall off and roll away
+      dialDetached = true;
+      const startX = dialGroup.position.x;
+      const startY = dialGroup.position.y;
+      const startZ = dialGroup.position.z;
+      // Drop under gravity
+      gsap.to(dialGroup.position, {
+        y: startY - 1.8,
+        duration: 0.6,
+        ease: 'power2.in',
+      });
+      // Roll sideways off screen
+      gsap.to(dialGroup.position, {
+        x: startX + 2.5,
+        duration: 1.2,
+        ease: 'power1.out',
+      });
+      // Slight forward pop then settle
+      gsap.to(dialGroup.position, {
+        z: startZ + 0.3,
+        duration: 0.15,
+        ease: 'power2.out',
+      });
+      gsap.to(dialGroup.position, {
+        z: startZ + 0.15,
+        duration: 0.1,
+        delay: 0.15,
+        ease: 'sine.inOut',
+      });
+      // Rolling spin
+      gsap.to(dialGroup.rotation, {
+        z: '+=12.0',
+        x: '+=3.0',
+        duration: 1.2,
+        ease: 'none',
+      });
+      // Fade out and hide
+      gsap.to(dialGroup, {
+        opacity: 0,
+        duration: 0.2,
+        delay: 1.0,
+        onComplete: () => { dialGroup.visible = false; },
+      });
+    } else {
+      // Spin faster each click
+      const spinDuration = Math.max(0.6 - dialClicks * 0.1, 0.15);
+      gsap.killTweensOf(dialGroup.rotation);
+      gsap.to(dialGroup.rotation, {
+        z: `+=${Math.PI * 2}`,
+        duration: spinDuration,
+        ease: 'power2.out',
+      });
+      barsAndToneGlitch();
+    }
+  }
+
+  canvas.addEventListener('click', onDialClick);
 
   // Power LED
   const ledMat = new THREE.MeshStandardMaterial({
@@ -784,6 +1066,7 @@ function initHero() {
   document.addEventListener('astro:before-swap', () => {
     cancelAnimationFrame(rafId);
     window.removeEventListener('resize', onResize);
+    canvas.removeEventListener('click', onCanvasClick);
     showreelVideo.pause();
     showreelVideo.src = '';
     renderer.dispose();
