@@ -11,6 +11,11 @@ export interface Props {
 const { videoUrl, title, client, category, year, slug } = Astro.props;
 const isYouTube = videoUrl.includes('youtube.com/embed') || videoUrl.includes('youtu.be');
 const isInstagram = videoUrl.includes('instagram.com');
+
+// Extract YouTube video ID from embed URL
+const youtubeMatch = videoUrl.match(/\/embed\/([a-zA-Z0-9_-]+)/);
+const youtubeId = youtubeMatch ? youtubeMatch[1] : null;
+const thumbnailUrl = youtubeId ? `https://img.youtube.com/vi/${youtubeId}/maxresdefault.jpg` : null;
 ---
 
 {isInstagram ? (
@@ -23,7 +28,6 @@ const isInstagram = videoUrl.includes('instagram.com');
     data-categories={category.join(' ')}
   >
     <div class="relative aspect-video overflow-hidden rounded-xl bg-surface">
-      {/* Instagram thumbnail would go here - for now showing placeholder */}
       <div class="flex h-full w-full items-center justify-center bg-gray-800 text-gray-400">
         Instagram Post
       </div>
@@ -43,15 +47,21 @@ const isInstagram = videoUrl.includes('instagram.com');
     data-categories={category.join(' ')}
   >
     <div class="relative aspect-video overflow-hidden rounded-xl bg-surface">
-      {isYouTube ? (
-        <iframe
-          src={`${videoUrl}?mute=1&controls=0&modestbranding=1&showinfo=0&rel=0&loop=1&playlist=${videoUrl.split('/').pop()}`}
-          title="Project video"
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          class="w-full h-full"
-        />
+      {isYouTube && youtubeId ? (
+        <div
+          class="relative w-full h-full"
+          data-yt-card={youtubeId}
+          data-yt-title={title}
+        >
+          <img
+            src={thumbnailUrl}
+            alt={title}
+            class="w-full h-full object-cover"
+            loading="lazy"
+            data-yt-thumb
+            onerror={`this.onerror=null;this.src='https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg'`}
+          />
+        </div>
       ) : (
         <video
           src={videoUrl}
@@ -72,6 +82,63 @@ const isInstagram = videoUrl.includes('instagram.com');
     </div>
   </a>
 )}
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const cards = document.querySelectorAll('[data-yt-card]');
+
+    cards.forEach((container) => {
+      const videoId = container.getAttribute('data-yt-card');
+      const videoTitle = container.getAttribute('data-yt-title') || 'Project video';
+      if (!videoId) return;
+
+      let iframe = null;
+      let thumbnail = container.querySelector('[data-yt-thumb]');
+
+      container.addEventListener('mouseenter', () => {
+        // Remove thumbnail if present
+        if (thumbnail) {
+          thumbnail.remove();
+          thumbnail = null;
+        }
+        // Insert fresh iframe
+        if (!iframe) {
+          iframe = document.createElement('iframe');
+          iframe.setAttribute('src', `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}`);
+          iframe.setAttribute('title', videoTitle);
+          iframe.setAttribute('frameborder', '0');
+          iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+          iframe.setAttribute('allowfullscreen', '');
+          iframe.className = 'w-full h-full absolute inset-0';
+          iframe.style.display = 'block';
+        }
+        container.appendChild(iframe);
+      });
+
+      container.addEventListener('mouseleave', () => {
+        // Remove iframe entirely so playback stops and bandwidth is freed
+        if (iframe && iframe.parentNode) {
+          iframe.parentNode.removeChild(iframe);
+          iframe = null;
+        }
+        // Recreate thumbnail if not present
+        if (!thumbnail) {
+          thumbnail = document.createElement('img');
+          thumbnail.setAttribute('src', `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`);
+          thumbnail.setAttribute('alt', videoTitle);
+          thumbnail.setAttribute('loading', 'lazy');
+          thumbnail.className = 'w-full h-full object-cover';
+          thumbnail.setAttribute('data-yt-thumb', '');
+          thumbnail.onerror = function() {
+            this.onerror = null;
+            this.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+          };
+          container.appendChild(thumbnail);
+        }
+      });
+    });
+  });
+</script>
 
 <style>
   .work-card::before {
