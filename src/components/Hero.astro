@@ -202,7 +202,7 @@ function initHero() {
 
   // === UNIFIED FRONT FACE — mahogany panel with screen + controls ===
   const panelH = 2.3;
-  const bezelW = 3.1, bezelH = 1.75;
+  const bezelW = 3.12, bezelH = 1.77;
 
   // Single front panel — spans the full front, mahogany
   const frontPanel = new THREE.Mesh(
@@ -219,6 +219,9 @@ function initHero() {
     darkPlasticMat
   );
   screenBezel.position.set(0, 0.25, bodyD / 2 + 0.065);
+  // Bring bezel in front of screen to hide outer video edges
+  screenBezel.position.z += 0.02;
+  screenBezel.renderOrder = 1;
   tvGroup.add(screenBezel);
 
   // Chrome trim around screen
@@ -250,9 +253,12 @@ function initHero() {
   const screenMat = new THREE.MeshBasicMaterial({ map: videoTex, color: 0x000000 });
   const screenW = 2.85, screenH = 1.603;
   const screenMesh = new THREE.Mesh(new THREE.PlaneGeometry(screenW, screenH), screenMat);
-  screenMesh.position.set(0, 0.25, bodyD / 2 + 0.5);
+  screenMesh.position.set(0.02, 0.26, bodyD / 2 + 0.5);
+  screenMesh.renderOrder = 0;
   tvGroup.add(screenMesh);
 
+
+// Flicker sweep bands — white strips with fuzzy edges and bloom glow on power-on
   // Flicker sweep bands — white strips with fuzzy edges and bloom glow on power-on
   // Soft-edge texture: white center fading to transparent at top/bottom
   const bandH = screenH * 0.04;
