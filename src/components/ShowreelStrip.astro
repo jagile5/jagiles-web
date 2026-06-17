@@ -2,12 +2,10 @@
 // Horizontal scroll strip of featured videos
 import VideoCard from './VideoCard.astro';
 
-const projects = [
-  { videoId: 'JiQkZmfhjOI', title: 'CHFT NHS Trust', category: 'Recruitment Video' },
-  { videoId: 'BgkUDztNgQA', title: 'Barnsley Council', category: 'Recruitment Video' },
-  { videoId: 'NY7NORUOcEs', title: 'Billingley Christmas Tree Farm', category: 'Promo' },
-  { videoId: 'zw5FbGgPiXA', title: 'Miata Drift Day', category: 'Drone / Passion Project' },
-];
+import { projects as allProjects } from '../data/projects';
+
+// Show a few highlighted projects in the horizontal strip
+const projects = allProjects.slice(0, 4);
 ---
 
 <section class="relative py-32 bg-alt" data-animate>
