@@ -1,6 +1,6 @@
 ---
 // Full project grid for the work page
-import VideoCard from './VideoCard.astro';
+import WorkCard from './WorkCard.astro';
 import { projects } from '../data/projects';
 
 // Extract unique category strings for filter pills
@@ -31,7 +31,7 @@ function filterProjects() {
     </div>
     <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
       {filterProjects().map((project) => (
-        <VideoCard {...project} />
+        <WorkCard {...project} />
       ))}
     </div>
   </div>
@@ -75,12 +75,5 @@ function filterProjects() {
       p.addEventListener('click', () => setActive(p.dataset.filter));
     });
 
-    // Hover video play/pause (desktop only)
-    cards.forEach(card => {
-      const video = card.querySelector('video');
-      if (!video) return;
-      card.addEventListener('mouseenter', () => video.play());
-      card.addEventListener('mouseleave', () => video.pause());
-    });
   });
 </script>

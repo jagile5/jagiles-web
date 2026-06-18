@@ -1,0 +1,88 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { projects } from '../../data/projects';
+
+export function getStaticPaths() {
+  return projects.map((project) => ({
+    params: { slug: project.slug },
+  }));
+}
+
+const { slug } = Astro.params;
+const project = projects.find(p => p.slug === slug);
+
+if (!project) {
+  return Astro.redirect('/work');
+}
+
+const { title, client, category, videoUrl, description, location } = project;
+const isYouTube = videoUrl.includes('youtube.com/embed') || videoUrl.includes('youtu.be');
+const isInstagram = videoUrl.includes('instagram.com');
+const isMp4 = videoUrl.endsWith('.mp4');
+
+---
+<BaseLayout title={title}>
+  <section class="py-20">
+    <div class="max-w-4xl mx-auto px-6">
+      <div class="relative aspect-video w-full rounded-xl bg-surface overflow-hidden mb-6">
+        {isYouTube && (
+          <iframe
+            title={title}
+            src={videoUrl}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+            class="w-full h-full"
+          ></iframe>
+        )}
+        {!isYouTube && isMp4 && (
+          <video
+            src={videoUrl}
+            muted
+            loop
+            playsinline
+            class="w-full h-full object-cover"
+          ></video>
+        )}
+        {!isYouTube && !isMp4 && (
+          <div class="flex h-full w-full items-center justify-center bg-gray-800 text-gray-400">
+            Video not available
+          </div>
+        )}
+      </div>
+
+      <div class="flex justify-between items-start mb-4">
+        <div>
+          <h1 class="font-display text-4xl font-bold leading-snug">{title}</h1>
+        </div>
+        <div class="flex-shrink-0">
+          <a href="/work">
+            <img src="/backkey.png" alt="Back" class="back-img" style="margin-top: -0.5rem;" />
+          </a>
+        </div>
+      </div>
+
+      <p class="text-text/70 leading-relaxed mb-10">{description}</p>
+
+      <div class="space-y-4">
+        <p class="text-text/80"><strong>Client:</strong> {client}</p>
+        <p class="text-text/80"><strong>SERVICES:</strong> {category.join(', ')}</p>
+        <p class="text-text/80"><strong>Location:</strong> {location}</p>
+      </div>
+    </div>
+  </section>
+
+  <style>
+    .back-img {
+      width: 3.825rem;
+      height: 3.825rem;
+      transition: transform 0.1s ease, opacity 0.2s;
+      display: block;
+    }
+    .back-img:hover {
+      opacity: 0.8;
+    }
+    .back-img:active {
+      transform: translateY(4px) scale(0.97);
+    }
+  </style>
+</BaseLayout>
