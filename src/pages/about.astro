@@ -1,56 +1,114 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+
+const tools = [
+  'DJI',
+  'Premiere Pro',
+  'DaVinci Resolve',
+  'Drone Gear',
+];
+
+const interests = ['FPV Drones', 'OneWheel', 'Homelab', 'Photography'];
 ---
 
 <BaseLayout title="About — Joshua Giles">
-  <section class="relative min-h-[80vh] py-32">
+  <section class="relative min-h-screen py-32 md:py-36">
     <div class="grain-overlay" />
-    <div class="relative z-10 max-w-7xl mx-auto px-6" data-animate>
+    <div class="relative z-10 max-w-6xl mx-auto px-6" data-animate>
+      <!-- Heading -->
       <p class="eyebrow">About</p>
       <h1 class="section-heading mb-12">Joshua Giles</h1>
 
-      <div class="max-w-3xl space-y-6 body-text">
-        <p class="text-xl font-display font-semibold text-text">
-          Vancouver-based. New Zealand-born. Obsessed with the craft.
-        </p>
-        <p>
-          Joshua Giles is a videographer, drone operator, and VFX/CGI artist specializing in cinematic storytelling through motion. With roots in New Zealand's landscapes and now based in Vancouver's creative scene, Joshua brings a unique perspective to every project.
-        </p>
-        <p>
-          His work spans recruitment videos, promotional content, drone cinematography, and visual effects — each piece crafted with meticulous attention to detail and a passion for pushing creative boundaries.
-        </p>
-      </div>
-
-      <div class="grid gap-12 md:grid-cols-2 mt-16 max-w-3xl">
-        <div>
-          <h3 class="font-display font-bold text-2xl mb-4">Skills</h3>
-          <ul class="space-y-2 text-text/70">
-            <li>Video Production & Editing</li>
-            <li>Drone Cinematography</li>
-            <li>VFX & CGI</li>
-            <li>Motion Graphics</li>
-            <li>Color Grading</li>
-            <li>Storyboarding</li>
-          </ul>
+      <!-- Two-column layout: text + placeholder image -->
+      <div class="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
+        <!-- Text column -->
+        <div class="space-y-6 body-text text-lg">
+          <p>
+            Videographer and drone operator based in North Vancouver, BC, originally from
+            New Zealand. Got into video work through a mix of curiosity and stubbornness,
+            and now splits his time between client shoots and personal projects.
+          </p>
+          <p>
+            When I'm not behind a camera I'm flying FPV drones, riding a OneWheel I built
+            myself, or tinkering with whatever homelab project is currently half-finished.
+          </p>
         </div>
-        <div>
-          <h3 class="font-display font-bold text-2xl mb-4">Process</h3>
-          <ol class="space-y-2 text-text/70 list-decimal list-inside">
-            <li>Discovery & Concept</li>
-            <li>Pre-production</li>
-            <li>Production & Capture</li>
-            <li>Post-production</li>
-            <li>Review & Delivery</li>
-          </ol>
+
+        <!-- Placeholder image column -->
+        <div class="aspect-[3/4] w-full max-w-sm mx-auto rounded-2xl border border-white/10
+                    bg-surface flex items-center justify-center">
+          <span class="text-text/30 font-display text-sm tracking-widest uppercase">Photo</span>
         </div>
       </div>
 
+      <!-- Tools I use — channel preset buttons -->
+      <div class="mt-20">
+        <p class="eyebrow mb-5">Tools I use</p>
+        <div class="flex flex-wrap gap-3">
+          {tools.map((tool) => (
+            <span class="channel-preset">{tool}</span>
+          ))}
+        </div>
+      </div>
+
+      <!-- Interest pills -->
+      <div class="mt-12">
+        <p class="eyebrow mb-5">Also into</p>
+        <div class="flex flex-wrap gap-3">
+          {interests.map((interest) => (
+            <span class="interest-pill">{interest}</span>
+          ))}
+        </div>
+      </div>
+
+      <!-- CTA -->
       <div class="mt-16">
         <a href="/contact" class="btn-primary">Get in Touch</a>
       </div>
     </div>
   </section>
 </BaseLayout>
+
+<style>
+  .channel-preset {
+    display: inline-block;
+    padding: 0.5rem 1.25rem;
+    border: 1px solid rgba(45, 138, 233, 0.3);
+    border-radius: 0.5rem;
+    background: rgba(45, 138, 233, 0.08);
+    color: var(--color-primary);
+    font-family: 'Syne', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    transition: all 0.3s ease;
+    cursor: default;
+  }
+
+  .channel-preset:hover {
+    background: rgba(45, 138, 233, 0.18);
+    border-color: rgba(45, 138, 233, 0.6);
+    box-shadow: 0 0 12px rgba(45, 138, 233, 0.15);
+  }
+
+  .interest-pill {
+    display: inline-block;
+    padding: 0.4rem 1.1rem;
+    border: 1px solid rgba(240, 237, 232, 0.15);
+    border-radius: 999px;
+    background: rgba(240, 237, 232, 0.04);
+    color: var(--color-text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+    cursor: default;
+  }
+
+  .interest-pill:hover {
+    background: rgba(240, 237, 232, 0.1);
+    border-color: rgba(240, 237, 232, 0.3);
+  }
+</style>
 
 <script>
   import { gsap } from 'gsap';

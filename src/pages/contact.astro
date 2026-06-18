@@ -9,21 +9,17 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <p class="eyebrow">Contact</p>
       <h1 class="section-heading mb-12">Get in Touch</h1>
 
-      <div class="grid gap-16 md:grid-cols-2 max-w-4xl">
+      <div class="grid gap-16 md:grid-cols-2">
         <div>
           <p class="body-text mb-6">
             Currently based in Vancouver and available for freelance projects worldwide. Let's create something remarkable together.
           </p>
           <div class="space-y-4 text-text/70">
-            <a href="mailto:joshua.allin.giles@gmail.com" class="block hover:text-primary transition-colors">
-              joshua.allin.giles@gmail.com
-            </a>
-            <a href="tel:+12269711873" class="block hover:text-primary transition-colors">
-              +1 226 971 1873
-            </a>
             <div class="flex gap-6 pt-4">
               <a href="https://instagram.com/josh_giles_or_something" target="_blank" rel="noopener noreferrer"
                  class="hover:text-primary transition-colors">Instagram</a>
+              <a href="https://vimeo.com/joshgiles" target="_blank" rel="noopener noreferrer"
+                 class="hover:text-primary transition-colors">Vimeo</a>
               <a href="https://linkedin.com/in/j-a-giles" target="_blank" rel="noopener noreferrer"
                  class="hover:text-primary transition-colors">LinkedIn</a>
             </div>
@@ -32,6 +28,12 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
         <div>
           <form id="contact-form" class="space-y-4">
+            <!-- Honeypot field (hidden via CSS) -->
+            <div class="honeypot-field">
+              <label for="company" class="sr-only">Company</label>
+              <input type="text" id="company" name="company" tabindex="-1" autocomplete="off" />
+            </div>
+
             <div>
               <label for="name" class="block text-sm font-medium mb-2">Name</label>
               <input type="text" id="name" name="name" required
@@ -53,46 +55,110 @@ import BaseLayout from '../layouts/BaseLayout.astro';
                        placeholder-text/30 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
                 placeholder="Your message"></textarea>
             </div>
-            <button type="submit" class="btn-primary w-full">Send Message</button>
+            <button type="submit" id="submit-btn" class="btn-primary w-full">
+              Send Message
+            </button>
           </form>
-          <p id="form-success" class="mt-4 text-third hidden">
+
+          <div id="form-success" class="mt-4 text-third hidden">
             Thanks for your message. I'll get back to you soon.
-          </p>
+          </div>
+          <div id="form-error" class="mt-4 text-secondary hidden">
+            Something went wrong. Please try again.
+          </div>
         </div>
       </div>
     </div>
   </section>
 </BaseLayout>
 
+<style>
+  /* Hide the honeypot field from users but keep it in the DOM for bots */
+  .honeypot-field {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  /* Optional: hide labels for screen readers but keep them accessible */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+  }
+</style>
+
 <script>
   document.addEventListener('astro:page-load', () => {
     const form = document.getElementById('contact-form') as HTMLFormElement;
+    const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
     const successMsg = document.getElementById('form-success');
+    const errorMsg = document.getElementById('form-error');
 
-    form?.addEventListener('submit', (e) => {
+    form?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      form.reset();
-      successMsg?.classList.remove('hidden');
-      setTimeout(() => successMsg?.classList.add('hidden'), 5000);
+
+      // Disable button and show loading state
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Sending...';
+
+      // Collect form data
+      const formData = new FormData(form);
+      const data = Object.fromEntries(formData.entries());
+
+      try {
+        const response = await fetch('/api/contact', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          // Success
+          form.reset();
+          successMsg.classList.remove('hidden');
+          errorMsg.classList.add('hidden');
+        } else {
+          // Error from server
+          throw new Error(result.error || 'Unknown error');
+        }
+      } catch (err) {
+        console.error('Form submission error:', err);
+        errorMsg.textContent = err.message || 'Failed to send message. Please try again.';
+        errorMsg.classList.remove('hidden');
+        successMsg.classList.add('hidden');
+      } finally {
+        // Re-enable button and reset text
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Send Message';
+      }
     });
-  });
 
-  // Scroll animation
-  import { gsap } from 'gsap';
-  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+    // Scroll animation
+    import { gsap } from 'gsap';
+    import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
-  gsap.registerPlugin(ScrollTrigger);
+    gsap.registerPlugin(ScrollTrigger);
 
-  document.addEventListener('astro:page-load', () => {
-    gsap.from('[data-animate]', {
-      scrollTrigger: {
-        trigger: '[data-animate]',
-        start: 'top 80%',
-      },
-      opacity: 0,
-      y: 40,
-      duration: 0.8,
-      ease: 'power3.out',
+    document.addEventListener('astro:page-load', () => {
+      gsap.from('[data-animate]', {
+        scrollTrigger: {
+          trigger: '[data-animate]',
+          start: 'top 80%',
+        },
+        opacity: 0,
+        y: 40,
+        duration: 0.8,
+        ease: 'power3.out',
+      });
     });
   });
 </script>
