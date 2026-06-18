@@ -1,0 +1,72 @@
+---
+const { videoUrl, title, client, category, year, slug } = Astro.props;
+
+<a href="#" class="work-card">
+  <div>
+    <h3>{title}</h3>
+  </div>
+</a>
+
+<style>
+  .work-card::before {
+    content: '';
+    position: absolute;
+    inset: -36px -24px;
+    border-radius: 2.25rem;
+    background:
+      /* Horizontal scanlines */
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 3px,
+        rgba(0, 0, 0, 0.25) 3px,
+        rgba(0, 0, 0, 0.25) 5px
+      ),
+      /* Vertical pixel bars */
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 3px,
+        rgba(0, 0, 0, 0.14) 3px,
+        rgba(0, 0, 0, 0.14) 5px
+      ),
+      /* Dark CRT glow */
+      rgba(15, 30, 50, 0.8);
+    opacity: 0;
+    transition: opacity 500ms ease-out;
+    z-index: -1;
+    pointer-events: none;
+    -webkit-mask-image: radial-gradient(
+      ellipse at center,
+      black 20%,
+      rgba(0, 0, 0, 0.7) 40%,
+      rgba(0, 0, 0, 0.25) 60%,
+      transparent 80%
+    );
+    mask-image: radial-gradient(
+      ellipse at center,
+      black 20%,
+      rgba(0, 0, 0, 0.7) 40%,
+      rgba(0, 0, 0, 0.25) 60%,
+      transparent 80%
+    );
+  }
+
+  .work-card:hover::before {
+    opacity: 1;
+  }
+
+  /* YouTube thumbnail container styles */
+  .work-card > a > div[data-youtube-id] {
+    position: relative;
+    cursor: pointer;
+  }
+
+  .work-card > a > div[data-youtube-id] img,
+  .work-card > a > div[data-youtube-id] iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+</style>
