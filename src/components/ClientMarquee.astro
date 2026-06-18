@@ -1,0 +1,405 @@
+---
+// ClientMarquee.astro - Logo marquee with water ripple effect
+// Replaces text-based marquee with logo images using water ripple effect
+---
+<section class="client-marquee">
+  <h2 class="client-marquee__heading">Trusted by</h2>
+  <div class="marquee-track relative" data-speed={30} data-reverse={false}>
+    <canvas class="marquee-canvas" aria-hidden="true"></canvas>
+    <div class="marquee-inner sr-only" aria-hidden="true">
+      {/* Hidden text for screen readers - list of logo names */}
+    </div>
+    <span class="sr-only">
+      Young and Restless, Logo Cadance, Zero Carbon Shropshire, Diebold Woodworks, Fairbuilt, Riwaka, GRM, Onewheel
+    </span>
+  </div>
+</section>
+
+<script>
+// Preload all logo images
+function preloadLogos() {
+  const logoPaths = [
+    '/logos/youngandrestless.webp',
+    '/logos/logo-cadance-20-1-.webp',
+    '/logos/zero-carbon-shropshire.webp',
+    '/logos/dieboldwoodworks.webp',
+    '/logos/fairbuilt-logo_transparent-03-03.webp',
+    '/logos/riwaka-logo-wh.webp',
+    '/logos/grm_logo_white.webp',
+    '/logos/onewheel-20in-20the-20middle-20outline-20white.webp'
+  ];
+
+  return Promise.all(
+    logoPaths.map(path => {
+      const img = new Image();
+      img.src = path;
+      return img.decode().then(() => ({
+        img,
+        width: img.width,
+        height: img.height
+      }));
+    })
+  );
+}
+
+// Setup marquee effect for a track
+function setupTrack(track) {
+  // Prevent multiple setups
+  if (track.getAttribute('data-marquee-setup')) return;
+  track.setAttribute('data-marquee-setup', 'true');
+
+  const canvas = track.querySelector('.marquee-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  // Read props from dataset
+  const baseSpeed = parseFloat(track.dataset.speed || '30');
+  const isReverse = track.dataset.reverse === '1';
+
+  // === 2D Water Simulation ===
+  const Q = 4;
+  let ww = 0, wh = 0, wSize = 0;
+  let buf1, buf2;
+  const DAMP = 0.985;
+
+  function initBuffers(w, h) {
+    ww = Math.ceil(w / Q);
+    wh = Math.ceil(h / Q);
+    const newSize = ww * wh;
+    if (wSize !== newSize) {
+      wSize = newSize;
+      buf1 = new Int16Array(wSize);
+      buf2 = new Int16Array(wSize);
+    }
+  }
+
+  function dropAt(px, py, dx, dy, speed) {
+    const cx = (px / Q) | 0;
+    const cy = (py / Q) | 0;
+    const r = Math.max(6, (speed * 0.4 / Q + 6) | 0);
+    const strength = Math.min(speed * 5, 100);
+    const len = Math.sqrt(dx * dx + dy * dy) || 1;
+    const nx = dx / len;
+    const ny = dy / len;
+
+    for (let oy = -r; oy <= r; oy++) {
+      for (let ox = -r; ox <= r; ox++) {
+        const dist2 = ox * ox + oy * oy;
+        if (dist2 <= r * r) {
+          const idx = (cy + oy) * ww + (cx + ox);
+          if (idx > 0 && idx < wSize) {
+            const dot = (ox * nx + oy * ny);
+            const dist = Math.sqrt(dist2);
+            const edgeFade = 1 - (dist / r);
+            buf1[idx] += (strength * (0.3 + dot * 0.7) * edgeFade * edgeFade) | 0;
+          }
+        }
+      }
+    }
+  }
+
+  function stepWater() {
+    for (let sy = 1; sy < wh - 1; sy++) {
+      for (let sx = 1; sx < ww - 1; sx++) {
+        const i = sy * ww + sx;
+        buf2[i] = ((buf1[i - 1] + buf1[i + 1] + buf1[i - ww] + buf1[i + ww]) >> 1) - buf2[i];
+        buf2[i] = (buf2[i] * DAMP) | 0;
+      }
+    }
+    for (let ex = 0; ex < ww; ex++) {
+      buf2[ex] = 0;
+      buf2[(wh - 1) * ww + ex] = 0;
+    }
+    for (let ey = 0; ey < wh; ey++) {
+      buf2[ey * ww] = 0;
+      buf2[ey * ww + ww - 1] = 0;
+    }
+    const tmp = buf1;
+    buf1 = buf2;
+    buf2 = tmp;
+  }
+
+  // === Texture Canvas for Logos ===
+  const texCanvas = document.createElement('canvas');
+  const tCtx = texCanvas.getContext('2d');
+  const displayHeight = 160; // Fixed display height for logos (fits in track with padding)
+  const LOGO_GAP = 60; // Gap between logos
+
+  // Will be initialized after logos load
+  let logos = [];
+  let baseWidths = [];
+  let setWidth = 0;
+  let repeatW = 0;
+  let tripledLogos = [];
+  let tripledBaseWidths = [];
+
+  function measure() {
+    // Measured during logo preload - no-op here
+  }
+
+  function renderTexture(w, h, scrollOff) {
+    texCanvas.width = w;
+    texCanvas.height = h;
+
+    if (repeatW <= 0) return tCtx.getImageData(0, 0, w, h).data;
+
+    tCtx.textBaseline = 'middle';
+    const centerY = h / 2;
+    let offset = ((scrollOff % repeatW) + repeatW) % repeatW;
+
+    let curX = -offset;
+    // Draw three sets of logos for seamless looping
+    for (let set = 0; set < 3; set++) {
+      for (let i = 0; i < logos.length; i++) {
+        const logoIndex = set * logos.length + i;
+        const logo = tripledLogos[logoIndex];
+        const scaledWidth = tripledBaseWidths[logoIndex];
+
+        // Draw logo
+        tCtx.drawImage(
+          logo.img,
+          curX,
+          centerY - displayHeight / 2,
+          scaledWidth,
+          displayHeight
+        );
+
+        curX += scaledWidth;
+
+        // Add gap after logo (except after last logo of third set)
+        const isLastLogo = (set === 2 && i === logos.length - 1);
+        if (!isLastLogo) {
+          curX += LOGO_GAP;
+        }
+      }
+    }
+
+    return tCtx.getImageData(0, 0, w, h).data;
+  }
+
+  // === State ===
+  let animFrameId;
+  let lastMx = -1, lastMy = -1;
+  let scrollOffset = 0;
+  let lastTime = 0;
+  let curW = 0, curH = 0;
+  let outputImg;
+
+  function resizeCanvas() {
+    const rect = track.getBoundingClientRect();
+    curW = rect.width | 0;
+    curH = rect.height | 0;
+    canvas.width = curW;
+    canvas.height = curH;
+    canvas.style.width = curW + 'px';
+    canvas.style.height = curH + 'px';
+    initBuffers(curW, curH);
+    measure();
+    outputImg = ctx.createImageData(curW, curH);
+  }
+  resizeCanvas();
+  new ResizeObserver(resizeCanvas).observe(track);
+
+  track.addEventListener('mouseleave', () => {
+    lastMx = -1;
+    lastMy = -1;
+  });
+
+  track.addEventListener('mousemove', e => {
+    const rect = track.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    if (lastMx >= 0) {
+      const dx = mx - lastMx;
+      const dy = my - lastMy;
+      const speed = Math.sqrt(dx * dx + dy * dy);
+      if (speed > 1) dropAt(mx, my, dx, dy, speed);
+    }
+    lastMx = mx;
+    lastMy = my;
+  });
+
+  // === Render Loop ===
+  function draw(time) {
+    if (!lastTime) lastTime = time;
+    const dt = Math.min((time - lastTime) / 1000, 0.05);
+    lastTime = time;
+    const w = curW;
+    const h = curH;
+    if (w <= 0 || h <= 0) {
+      animFrameId = requestAnimationFrame(draw);
+      return;
+    }
+
+    // Update scroll offset
+    scrollOffset += (repeatW / baseSpeed) * dt * (isReverse ? -1 : 1);
+    stepWater();
+
+    // Render texture and apply water distortion
+    const tex = renderTexture(w, h, scrollOffset);
+    const out = outputImg.data;
+
+    for (let py = 0; py < h; py++) {
+      for (let px = 0; px < w; px++) {
+        const gx = (px / Q) | 0;
+        const gy = (py / Q) | 0;
+        const pi = (py * w + px) * 4;
+
+        if (gx > 0 && gx < ww - 1 && gy > 0 && gy < wh - 1) {
+          const gi = gy * ww + gx;
+          const offX = (buf1[gi - 1] - buf1[gi + 1]) >> 2;
+          const offY = (buf1[gi - ww] - buf1[gi + ww]) >> 2;
+          let sxs = px + offX;
+          let sys = py + offY;
+          sxs = sxs < 0 ? 0 : sxs >= w ? w - 1 : sxs;
+          sys = sys < 0 ? 0 : sys >= h ? h - 1 : sys;
+          const si = (sys * w + sxs) * 4;
+          const boost = Math.abs(buf1[gi]) >> 4;
+          out[pi] = Math.min(255, tex[si] + boost);
+          out[pi + 1] = Math.min(255, tex[si + 1] + boost);
+          out[pi + 2] = Math.min(255, tex[si + 2] + boost);
+          out[pi + 3] = tex[si + 3];
+        } else {
+          out[pi] = tex[pi];
+          out[pi + 1] = tex[pi + 1];
+          out[pi + 2] = tex[pi + 2];
+          out[pi + 3] = tex[pi + 3];
+        }
+      }
+    }
+
+    ctx.putImageData(outputImg, 0, 0);
+    animFrameId = requestAnimationFrame(draw);
+  }
+
+  // === Logo Preloading and Initialization ===
+  let logoImagesPromise = null;
+
+  function initMarquee() {
+    if (!logoImagesPromise) {
+      logoImagesPromise = preloadLogos();
+    }
+    return logoImagesPromise.then(images => {
+      logos = images;
+      // Calculate base widths (scaled to displayHeight)
+      baseWidths = logos.map(logo => (logo.width / logo.height) * displayHeight);
+      const n = logos.length;
+      setWidth = baseWidths.reduce((sum, w) => sum + w, 0) + (n - 1) * LOGO_GAP;
+      repeatW = setWidth + LOGO_GAP; // One set plus gap for periodicity
+      tripledLogos = [...logos, ...logos, ...logos];
+      tripledBaseWidths = [...baseWidths, ...baseWidths, ...baseWidths];
+      measure();
+      resizeCanvas(); // Ensure buffers are sized correctly
+    });
+  }
+
+  // Initialize and observe for intersection
+  const observer = new IntersectionObserver(
+    entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          initMarquee().then(() => {
+            lastTime = 0;
+            animFrameId = requestAnimationFrame(draw);
+          });
+        } else {
+          cancelAnimationFrame(animFrameId);
+        }
+      });
+    },
+    { threshold: 0 }
+  );
+  observer.observe(track);
+
+  // Re-initialize on page load (for SPA navigation)
+  document.addEventListener('astro:page-load', () => {
+    // Cancel any existing animation
+    if (animFrameId) cancelAnimationFrame(animFrameId);
+    // Reset state
+    logoImagesPromise = null;
+    logos = [];
+    baseWidths = [];
+    setWidth = 0;
+    repeatW = 0;
+    tripledLogos = [];
+    tripledBaseWidths = [];
+    // Re-initialize
+    initMarquee();
+  });
+}
+
+// Initialize all marquee tracks on initial load
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.marquee-track').forEach(setupTrack);
+});
+</script>
+
+<style>
+  .client-marquee {
+    position: relative;
+    overflow: hidden;
+    padding: 3rem 0;
+    background: var(--color-background);
+    /* Fade-out mask at edges */
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      black 10%,
+      black 90%,
+      transparent
+    );
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent,
+      black 10%,
+      black 90%,
+      transparent
+    );
+  }
+
+  .client-marquee__heading {
+    margin: 0 0 2rem 0;
+    font-family: 'Syne', sans-serif;
+    font-size: 3.3rem;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    color: var(--color-text);
+    text-align: center;
+  }
+
+.marquee-track {
+  position: relative;
+  height: 220px;
+}
+
+.marquee-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.marquee-reverse {
+  animation-direction: reverse;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    height: auto;
+  }
+  .marquee-canvas {
+    display: none;
+  }
+  .marquee-inner {
+    position: static;
+    clip: auto;
+    width: auto;
+    height: auto;
+  }
+  .marquee-item {
+    display: inline;
+  }
+}
+</style>
