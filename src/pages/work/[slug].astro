@@ -24,7 +24,7 @@ const isMp4 = videoUrl.endsWith('.mp4');
 <BaseLayout title={title}>
   <section class="py-20">
     <div class="max-w-4xl mx-auto px-6">
-      <div class="relative aspect-video w-full rounded-xl bg-surface overflow-hidden mb-6">
+      <div class="relative aspect-video w-[65vw] left-1/2 -translate-x-1/2 rounded-xl bg-surface overflow-hidden mb-10">
         {isYouTube && (
           <iframe
             title={title}
@@ -65,7 +65,7 @@ const isMp4 = videoUrl.endsWith('.mp4');
 
       <div class="space-y-4">
         <p class="text-text/80"><strong>Client:</strong> {client}</p>
-        <p class="text-text/80"><strong>SERVICES:</strong> {category.join(', ')}</p>
+        <p class="text-text/80"><strong>Services:</strong> {category.join(', ')}</p>
         <p class="text-text/80"><strong>Location:</strong> {location}</p>
       </div>
     </div>
