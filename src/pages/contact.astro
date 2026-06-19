@@ -93,18 +93,31 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 </style>
 
 <script>
-  document.addEventListener('astro:page-load', async () => {
-    const form = document.getElementById('contact-form') as HTMLFormElement;
-    const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+  console.log('[Contact Form] Script loaded');
+
+  // Function to initialize the form
+  function initContactForm() {
+    console.log('[Contact Form] Initializing form');
+    const form = document.getElementById('contact-form');
+    const submitBtn = document.getElementById('submit-btn');
     const successMsg = document.getElementById('form-success');
     const errorMsg = document.getElementById('form-error');
 
-    form?.addEventListener('submit', async (e) => {
+    if (!form) {
+      console.error('[Contact Form] Form element not found - check id="contact-form"');
+      return;
+    }
+
+    console.log('[Contact Form] Form found, attaching submit listener');
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      console.log('[Contact Form] Submit intercepted');
 
       // Disable button and show loading state
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Sending...';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Sending...';
+      }
 
       // Collect form data
       const formData = new FormData(form);
@@ -124,39 +137,58 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         if (response.ok && result.success) {
           // Success
           form.reset();
-          successMsg.classList.remove('hidden');
-          errorMsg.classList.add('hidden');
+          if (successMsg) successMsg.classList.remove('hidden');
+          if (errorMsg) errorMsg.classList.add('hidden');
         } else {
           // Error from server
           throw new Error(result.error || 'Unknown error');
         }
       } catch (err) {
-        console.error('Form submission error:', err);
-        errorMsg.textContent = err.message || 'Failed to send message. Please try again.';
-        errorMsg.classList.remove('hidden');
-        successMsg.classList.add('hidden');
+        console.error('[Contact Form] Submission error:', err);
+        if (errorMsg) {
+          errorMsg.textContent = err.message || 'Failed to send message. Please try again.';
+          errorMsg.classList.remove('hidden');
+        }
+        if (successMsg) successMsg.classList.add('hidden');
       } finally {
         // Re-enable button and reset text
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Send Message';
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Send Message';
+        }
       }
     });
 
-    // Scroll animation — use dynamic import inside the callback
-    const { gsap } = await import('gsap');
-    const { ScrollTrigger } = await import('gsap/ScrollTrigger');
+    // Scroll animation — use dynamic import
+    (async () => {
+      try {
+        const { gsap } = await import('gsap');
+        const { ScrollTrigger } = await import('gsap/ScrollTrigger');
+        gsap.registerPlugin(ScrollTrigger);
 
-    gsap.registerPlugin(ScrollTrigger);
+        gsap.from('[data-animate]', {
+          scrollTrigger: {
+            trigger: '[data-animate]',
+            start: 'top 80%',
+          },
+          opacity: 0,
+          y: 40,
+          duration: 0.8,
+          ease: 'power3.out',
+        });
+      } catch (err) {
+        console.error('[Contact Form] GSAP import error:', err);
+      }
+    })();
+  }
 
-    gsap.from('[data-animate]', {
-      scrollTrigger: {
-        trigger: '[data-animate]',
-        start: 'top 80%',
-      },
-      opacity: 0,
-      y: 40,
-      duration: 0.8,
-      ease: 'power3.out',
-    });
-  });
+  // Try multiple ways to ensure initialization
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initContactForm);
+  } else {
+    initContactForm();
+  }
+
+  // Also try astro:page-load as backup
+  document.addEventListener('astro:page-load', initContactForm);
 </script>
