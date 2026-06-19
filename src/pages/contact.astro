@@ -124,24 +124,30 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       const data = Object.fromEntries(formData.entries());
 
       try {
-        const response = await fetch('/api/contact', {
+        const response = await fetch('https://api.web3forms.com/submit', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(data),
+          body: JSON.stringify({
+            access_key: 'd7b2637f-05d7-4a87-b14b-6870e8708b83',
+            name: data.name,
+            email: data.email,
+            message: data.message,
+            subject: `New contact form submission from ${data.name}`,
+          }),
         });
 
         const result = await response.json();
 
-        if (response.ok && result.success) {
+        if (result.success) {
           // Success
           form.reset();
           if (successMsg) successMsg.classList.remove('hidden');
           if (errorMsg) errorMsg.classList.add('hidden');
         } else {
           // Error from server
-          throw new Error(result.error || 'Unknown error');
+          throw new Error(result.message || 'Failed to send message. Please try again.');
         }
       } catch (err) {
         console.error('[Contact Form] Submission error:', err);
