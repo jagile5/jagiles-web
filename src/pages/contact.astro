@@ -93,7 +93,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 </style>
 
 <script>
-  document.addEventListener('astro:page-load', () => {
+  document.addEventListener('astro:page-load', async () => {
     const form = document.getElementById('contact-form') as HTMLFormElement;
     const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
     const successMsg = document.getElementById('form-success');
@@ -142,23 +142,21 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       }
     });
 
-    // Scroll animation
-    import { gsap } from 'gsap';
-    import { ScrollTrigger } from 'gsap/ScrollTrigger';
+    // Scroll animation — use dynamic import inside the callback
+    const { gsap } = await import('gsap');
+    const { ScrollTrigger } = await import('gsap/ScrollTrigger');
 
     gsap.registerPlugin(ScrollTrigger);
 
-    document.addEventListener('astro:page-load', () => {
-      gsap.from('[data-animate]', {
-        scrollTrigger: {
-          trigger: '[data-animate]',
-          start: 'top 80%',
-        },
-        opacity: 0,
-        y: 40,
-        duration: 0.8,
-        ease: 'power3.out',
-      });
+    gsap.from('[data-animate]', {
+      scrollTrigger: {
+        trigger: '[data-animate]',
+        start: 'top 80%',
+      },
+      opacity: 0,
+      y: 40,
+      duration: 0.8,
+      ease: 'power3.out',
     });
   });
 </script>
